@@ -5,6 +5,9 @@ on:
     branches: [ master, main ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build-arm64:
@@ -21,18 +24,29 @@ jobs:
 
 
       - name: Compilation dans un conteneur Ubuntu ARM64
-        uses: uraimo/run-on-arch-action@v2
+        uses: uraimo/run-on-arch-action@v3
         with:
           arch: aarch64
-          distro: ubuntu22.04
+          distro: ubuntu24.04
           githubToken: ${{ github.token }}
-          run: |
+          install: |
             apt-get update
-            apt-get install -y build-essential cmake pkg-config qtbase5-dev libqt5svg5-dev libgl1-mesa-dev checkinstall
+            apt-get install -y \
+              build-essential cmake pkg-config git \
+              qtbase5-dev libqt5opengl5-dev libqt5svg5-dev libqt5x11extras5-dev \
+              qttools5-dev qttools5-dev-tools libgl1-mesa-dev \
+              libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
+              libswscale-dev libswresample-dev \
+              portaudio19-dev libopencolorio-dev libopenimageio-dev \
+              libopenexr-dev libimath-dev checkinstall
+          run: |
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
             mkdir -p build && cd build
-            cmake -DCMAKE_BUILD_TYPE=Release ..
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
             make -j$(nproc)
-            checkinstall -y --pkgname=olive-editor --pkgversion=0.2.0 --arch=arm64 --provides=olive-editor
+            checkinstall -y --default --install=no \
+              --pkgname=olive-editor --pkgversion=0.2.0 \
+              --arch=arm64 --provides=olive-editor
 
 
       - name: Sauvegarder le fichier .deb
