@@ -33,18 +33,22 @@ jobs:
             apt-get update
             apt-get install -y \
               build-essential cmake pkg-config git \
-              qtbase5-dev qtbase5-private-dev libqt5opengl5-dev libqt5svg5-dev libqt5x11extras5-dev \
+              qtbase5-dev qtbase5-private-dev libqt5opengl5-dev libqt5x11extras5-dev \
               qttools5-dev qttools5-dev-tools libgl1-mesa-dev \
               libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
               libswscale-dev libswresample-dev \
               portaudio19-dev libopencolorio-dev libopenimageio-dev \
-              libopenexr-dev libimath-dev checkinstall
+              libopenexr-dev checkinstall
           run: |
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
             mkdir -p build && cd build
-            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr ..
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
+              -DCMAKE_CXX_FLAGS="-ffunction-sections -fdata-sections" \
+              -DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections" \
+              -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
+              ..
             make -j$(nproc)
-            checkinstall -y --default --install=no \
+            checkinstall -y --default --install=no --nodoc \
               --pkgname=olive-editor --pkgversion=0.2.0 \
               --arch=arm64 --provides=olive-editor
 
