@@ -1,65 +1,42 @@
-name: Build Olive for ARM64
+name: Build Olive ARM64 (.deb)
 
 on:
   push:
-    branches:
-      - master
+    branches: [ master, main ]
+  workflow_dispatch:
 
-env:
-  CMAKE_ARGS: -DUSE_WERROR=ON
 
 jobs:
   build-arm64:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Récupérer le code
+        uses: actions/checkout@v4
         with:
-          submodules: true
+          submodules: recursive
 
-      - name: Set up QEMU for aarch64
-        uses: microsoft/setup-qemu-action@v2
+
+      - name: Configurer QEMU (ARM64)
+        uses: docker/setup-qemu-action@v3
+
+
+      - name: Compilation dans un conteneur Ubuntu ARM64
+        uses: uraimo/run-on-arch-action@v2
         with:
-          qemu-version: 'latest'
-          architecture: aarch64
+          arch: aarch64
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+          run: |
+            apt-get update
+            apt-get install -y build-essential cmake pkg-config qtbase5-dev libqt5svg5-dev libgl1-mesa-dev checkinstall
+            mkdir -p build && cd build
+            cmake -DCMAKE_BUILD_TYPE=Release ..
+            make -j$(nproc)
+            checkinstall -y --pkgname=olive-editor --pkgversion=0.2.0 --arch=arm64 --provides=olive-editor
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake git \
-            qt6-base-dev qt6-tools-dev \
-            libffmpeg-dev libopenexr-dev libopencolorio-dev \
-            libportaudio2 g++-aarch64-linux-gnu checkinstall
 
-      - name: Configure CMake
-        run: |
-          mkdir build
-          cd build
-          cmake .. -G "Ninja" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++ \
-            -DCMAKE_SYSTEM_NAME=Linux \
-            $CMAKE_ARGS
-
-      - name: Build
-        working-directory: build
-        run: cmake --build .
-
-      - name: Install and create .deb with checkinstall
-        working-directory: build
-        run: |
-          cmake --install . --prefix /tmp/olive-deb
-          cd /tmp/olive-deb
-          checkinstall --install=no --default \
-            --pkgname=olive-editor \
-            --pkgversion=${GITHUB_SHA} \
-            --pkgrelease=${{ github.run_number }} \
-            --default
-
-      - name: Upload .deb artifact
-        uses: actions/upload-artifact@v3
+      - name: Sauvegarder le fichier .deb
+        uses: actions/upload-artifact@v4
         with:
-          name: olive-editor-arm64
-          path: /tmp/olive-deb/olive-editor_*.deb
+          name: olive-arm64-deb
+          path: build/*.deb
