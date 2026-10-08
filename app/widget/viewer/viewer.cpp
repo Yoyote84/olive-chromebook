@@ -56,12 +56,10 @@ namespace olive {
 QVector<ViewerWidget*> ViewerWidget::instances_;
 
 // NOTE: Hardcoded interval of size of audio chunk to render and send to the output at a time.
-//       We want this to be as long as possible so the code has plenty of time to send the audio
-//       while also being as short as possible so users get relatively immediate feedback when
-//       changing values. 1/4 second seems to be a good middleground.
-const rational ViewerWidget::kAudioPlaybackInterval = rational(1, 4);
+//       Reduced latency for lower-end devices (Crostini/Mali)
+const rational ViewerWidget::kAudioPlaybackInterval = rational(1, 8);
 
-const rational kVideoPlaybackInterval = rational(1, 2);
+const rational kVideoPlaybackInterval = rational(1, 3);
 
 ViewerWidget::ViewerWidget(ViewerDisplayWidget *display, QWidget *parent) :
   super(false, true, parent),
@@ -987,8 +985,8 @@ void ViewerWidget::PlayInternal(int speed, bool in_to_out_only)
     AudioManager::instance()->SetOutputNotifyInterval(audio_processor_.to().time_to_bytes(kAudioPlaybackInterval));
     connect(AudioManager::instance(), &AudioManager::OutputNotify, this, &ViewerWidget::QueueNextAudioBuffer);
 
-    static const int prequeue_count = 2;
-    prequeuing_audio_ = prequeue_count; // Queue two buffers ahead of time
+    static const int prequeue_count = 1;
+    prequeuing_audio_ = prequeue_count; // Queue buffer ahead of time
     audio_playback_queue_time_ = GetConnectedNode()->GetPlayhead();
     for (int i=0; i<prequeue_count; i++) {
       QueueNextAudioBuffer();

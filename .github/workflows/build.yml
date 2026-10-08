@@ -41,7 +41,7 @@ jobs:
                 -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
                 ..
               make -j$(nproc)
-              checkinstall -y --default --install=no --nodoc \
+              checkinstall -y --default --install=no --fstrans=no --nodoc \
                 --pkgname=olive-editor --pkgversion=0.2.0 \
                 --arch=arm64 --provides=olive-editor
             '
@@ -71,7 +71,7 @@ jobs:
                 -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
                 ..
               make -j$(nproc)
-              checkinstall -y --default --install=no --nodoc \
+              checkinstall -y --default --install=no --fstrans=no --nodoc \
                 --pkgname=olive-editor --pkgversion=0.2.0 \
                 --arch=arm64 --provides=olive-editor
             '
