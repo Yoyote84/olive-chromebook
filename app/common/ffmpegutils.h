@@ -90,6 +90,41 @@ inline AVFramePtr CreateAVFramePtr()
   return CreateAVFramePtr(av_frame_alloc());
 }
 
+/**
+ * @brief Converts an FFmpeg AVChannelLayout into a uint64 channel layout mask
+ *
+ * If the layout's order is not native (e.g. unspecified or custom), a default layout for the
+ * layout's number of channels is used instead.
+ */
+inline uint64_t ChannelLayoutMask(const AVChannelLayout& layout)
+{
+  uint64_t mask = av_channel_layout_subset(&layout, UINT64_MAX);
+  if (mask) {
+    return mask;
+  }
+
+  AVChannelLayout default_layout = {0};
+  av_channel_layout_default(&default_layout, layout.nb_channels);
+  mask = av_channel_layout_subset(&default_layout, UINT64_MAX);
+
+  return mask;
+}
+
+/**
+ * @brief Sets an AVChannelLayout from a uint64 channel layout mask
+ *
+ * If the mask is 0, a default layout for the given channel count is used instead. The caller is
+ * responsible for releasing the layout with av_channel_layout_uninit().
+ */
+inline void SetChannelLayout(AVChannelLayout *layout, uint64_t mask, int channel_count)
+{
+  if (mask) {
+    av_channel_layout_from_mask(layout, mask);
+  } else {
+    av_channel_layout_default(layout, qMax(channel_count, 1));
+  }
+}
+
 }
 
 #endif // FFMPEGABSTRACTION_H

@@ -439,10 +439,7 @@ FootageDescription FFmpegDecoder::Probe(const QString &filename, CancelAtom *can
         } else if (avstream->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
 
           // Create an audio stream object
-          uint64_t channel_layout = avstream->codecpar->channel_layout;
-          if (!channel_layout) {
-            channel_layout = static_cast<uint64_t>(av_get_default_channel_layout(avstream->codecpar->channels));
-          }
+          uint64_t channel_layout = ChannelLayoutMask(avstream->codecpar->ch_layout);
 
           if (avstream->duration == AV_NOPTS_VALUE || duration_guessed_from_bitrate) {
             // Loop through stream until we get the whole duration
@@ -558,15 +555,27 @@ bool FFmpegDecoder::ConformAudioInternal(const QVector<QString> &filenames, cons
   }
 
   // Create resampling context
-  SwrContext* resampler = swr_alloc_set_opts(nullptr,
-                                             params.channel_layout(),
-                                             FFmpegUtils::GetFFmpegSampleFormat(params.format()),
-                                             params.sample_rate(),
-                                             channel_layout,
-                                             static_cast<AVSampleFormat>(instance_.avstream()->codecpar->format),
-                                             instance_.avstream()->codecpar->sample_rate,
-                                             0,
-                                             nullptr);
+  AVChannelLayout out_layout = {0};
+  SetChannelLayout(&out_layout, params.channel_layout(), params.channel_count());
+  AVChannelLayout in_layout = {0};
+  SetChannelLayout(&in_layout, channel_layout, instance_.avstream()->codecpar->ch_layout.nb_channels);
+
+  SwrContext* resampler = nullptr;
+  int resample_setup_ret = swr_alloc_set_opts2(&resampler,
+                                               &out_layout,
+                                               FFmpegUtils::GetFFmpegSampleFormat(params.format()),
+                                               params.sample_rate(),
+                                               &in_layout,
+                                               static_cast<AVSampleFormat>(instance_.avstream()->codecpar->format),
+                                               instance_.avstream()->codecpar->sample_rate,
+                                               0,
+                                               nullptr);
+  av_channel_layout_uninit(&out_layout);
+  av_channel_layout_uninit(&in_layout);
+  if (resample_setup_ret < 0 || !resampler) {
+    qCritical() << "Failed to create resampling context";
+    return false;
+  }
 
   swr_init(resampler);
 
@@ -691,11 +700,7 @@ int FFmpegDecoder::GetNativeChannelCount(AVPixelFormat pix_fmt)
 
 uint64_t FFmpegDecoder::ValidateChannelLayout(AVStream* stream)
 {
-  if (stream->codecpar->channel_layout) {
-    return stream->codecpar->channel_layout;
-  }
-
-  return av_get_default_channel_layout(stream->codecpar->channels);
+  return ChannelLayoutMask(stream->codecpar->ch_layout);
 }
 
 const char *FFmpegDecoder::GetInterlacingModeInFFmpeg(VideoParams::Interlacing interlacing)

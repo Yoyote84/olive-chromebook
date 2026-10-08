@@ -17,28 +17,67 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Compilation sur runner ARM64 natif
+      - name: Compilation sous Debian trixie (ARM64 natif)
         run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential cmake pkg-config git \
-            qtbase5-dev qtbase5-private-dev libqt5opengl5-dev libqt5x11extras5-dev \
-            qttools5-dev qttools5-dev-tools libgl1-mesa-dev \
-            libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
-            libswscale-dev libswresample-dev \
-            portaudio19-dev libopencolorio-dev libopenimageio-dev \
-            libopenexr-dev checkinstall
-          mkdir -p build && cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
-            -DCMAKE_CXX_FLAGS="-ffunction-sections -fdata-sections" \
-            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections" \
-            -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
-            ..
-          make -j$(nproc)
-          checkinstall -y --default --install=no --nodoc \
-            --pkgname=olive-editor --pkgversion=0.2.0 \
-            --arch=arm64 --provides=olive-editor
+          if command -v docker >/dev/null 2>&1; then
+            echo "::group::Docker : build dans le conteneur Debian trixie"
+            docker run --rm -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" -w "$GITHUB_WORKSPACE" debian:13 bash -euo pipefail -c '
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -y
+              apt-get install -y --no-install-recommends \
+                build-essential cmake pkg-config ca-certificates \
+                qtbase5-dev qtbase5-private-dev libqt5opengl5-dev libqt5x11extras5-dev \
+                qttools5-dev qttools5-dev-tools libgl1-mesa-dev \
+                libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
+                libswscale-dev libswresample-dev \
+                portaudio19-dev libopencolorio-dev libopenimageio-dev \
+                libopenexr-dev libimath-dev checkinstall
+              mkdir -p build && cd build
+              cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
+                -DCMAKE_CXX_FLAGS="-ffunction-sections -fdata-sections" \
+                -DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections" \
+                -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
+                ..
+              make -j$(nproc)
+              checkinstall -y --default --install=no --nodoc \
+                --pkgname=olive-editor --pkgversion=0.2.0 \
+                --arch=arm64 --provides=olive-editor
+            '
+            echo "::endgroup::"
+          else
+            echo "::group::Repli debootstrap (trixie)"
+            sudo apt-get install -y debootstrap
+            sudo rm -rf /tmp/trixie-root
+            sudo debootstrap --variant=minbase trixie /tmp/trixie-root
+            sudo cp /etc/resolv.conf /tmp/trixie-root/etc/
+            sudo cp -a "$GITHUB_WORKSPACE" /tmp/trixie-root/workspace
+            sudo chroot /tmp/trixie-root /bin/bash -euo pipefail -c '
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -y
+              apt-get install -y --no-install-recommends \
+                build-essential cmake pkg-config ca-certificates \
+                qtbase5-dev qtbase5-private-dev libqt5opengl5-dev libqt5x11extras5-dev \
+                qttools5-dev qttools5-dev-tools libgl1-mesa-dev \
+                libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
+                libswscale-dev libswresample-dev \
+                portaudio19-dev libopencolorio-dev libopenimageio-dev \
+                libopenexr-dev libimath-dev checkinstall
+              cd /workspace && mkdir -p build && cd build
+              cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr \
+                -DCMAKE_CXX_FLAGS="-ffunction-sections -fdata-sections" \
+                -DCMAKE_EXE_LINKER_FLAGS="-Wl,--gc-sections" \
+                -DCMAKE_BUILD_WITH_INSTALL_RPATH=OFF \
+                ..
+              make -j$(nproc)
+              checkinstall -y --default --install=no --nodoc \
+                --pkgname=olive-editor --pkgversion=0.2.0 \
+                --arch=arm64 --provides=olive-editor
+            '
+            sudo cp /tmp/trixie-root/workspace/build/*.deb build/ || true
+            echo "::endgroup::"
+          fi
 
       - name: Sauvegarder le fichier .deb
         uses: actions/upload-artifact@v4
