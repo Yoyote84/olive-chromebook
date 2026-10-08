@@ -555,9 +555,9 @@ bool FFmpegDecoder::ConformAudioInternal(const QVector<QString> &filenames, cons
   }
 
   // Create resampling context
-  AVChannelLayout out_layout = {0};
+  AVChannelLayout out_layout = {};
   SetChannelLayout(&out_layout, params.channel_layout(), params.channel_count());
-  AVChannelLayout in_layout = {0};
+  AVChannelLayout in_layout = {};
   SetChannelLayout(&in_layout, channel_layout, instance_.avstream()->codecpar->ch_layout.nb_channels);
 
   SwrContext* resampler = nullptr;

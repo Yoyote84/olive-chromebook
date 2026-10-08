@@ -103,7 +103,7 @@ inline uint64_t ChannelLayoutMask(const AVChannelLayout& layout)
     return mask;
   }
 
-  AVChannelLayout default_layout = {0};
+  AVChannelLayout default_layout = {};
   av_channel_layout_default(&default_layout, layout.nb_channels);
   mask = av_channel_layout_subset(&default_layout, UINT64_MAX);
 

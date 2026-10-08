@@ -828,9 +828,9 @@ bool FFmpegEncoder::InitializeResampleContext(const AudioParams &audio)
   }
 
   // Create resample context
-  AVChannelLayout out_layout = {0};
+  AVChannelLayout out_layout = {};
   av_channel_layout_copy(&out_layout, &audio_codec_ctx_->ch_layout);
-  AVChannelLayout in_layout = {0};
+  AVChannelLayout in_layout = {};
   SetChannelLayout(&in_layout, audio.channel_layout(), audio.channel_count());
 
   int resample_setup_ret = swr_alloc_set_opts2(&audio_resample_ctx_,
