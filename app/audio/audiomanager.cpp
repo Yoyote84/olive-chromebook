@@ -266,7 +266,24 @@ PaDeviceIndex AudioManager::FindDeviceByName(const QString &s, bool is_output_de
     }
   }
 
-  return is_output_device ? Pa_GetDefaultOutputDevice() : Pa_GetDefaultInputDevice();
+  // Try to get the PortAudio default device
+  PaDeviceIndex defaultDevice = is_output_device ? Pa_GetDefaultOutputDevice() : Pa_GetDefaultInputDevice();
+
+  // If the default device is valid, use it
+  if (defaultDevice != paNoDevice) {
+    return defaultDevice;
+  }
+
+  // Fallback: find any available device with the required channels
+  for (PaDeviceIndex i=0, end=Pa_GetDeviceCount(); i<end; i++) {
+    const PaDeviceInfo *device = Pa_GetDeviceInfo(i);
+
+    if (((is_output_device && device->maxOutputChannels > 0) || (!is_output_device && device->maxInputChannels > 0))) {
+      return i;
+    }
+  }
+
+  return paNoDevice;
 }
 
 PaStreamParameters AudioManager::GetPortAudioParams(const AudioParams &params, PaDeviceIndex device)
