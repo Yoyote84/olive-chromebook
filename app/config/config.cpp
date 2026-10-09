@@ -108,6 +108,7 @@ void Config::SetDefaults()
   SetEntryInternal(QStringLiteral("LowQualityPlayback"), NodeValue::kBoolean, true);
   SetEntryInternal(QStringLiteral("PlaybackDivider"), NodeValue::kInt, 2);
   SetEntryInternal(QStringLiteral("LowPerformanceMode"), NodeValue::kBoolean, true);
+  SetEntryInternal(QStringLiteral("ForceLowDensity"), NodeValue::kBoolean, true);
   SetEntryInternal(QStringLiteral("DiskCacheSaveInterval"), NodeValue::kInt, 30000);
   SetEntryInternal(QStringLiteral("DiskCacheBehind"), NodeValue::kRational, QVariant::fromValue(rational(0)));
   SetEntryInternal(QStringLiteral("DiskCacheAhead"), NodeValue::kRational, QVariant::fromValue(rational(30)));

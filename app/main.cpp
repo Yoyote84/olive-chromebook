@@ -37,6 +37,9 @@ extern "C" {
 #include <QCommandLineParser>
 #include <QMessageBox>
 #include <QSurfaceFormat>
+#include <QStandardPaths>
+#include <QFile>
+#include <QXmlStreamReader>
 
 #include "core.h"
 #include "common/commandlineparser.h"
@@ -260,6 +263,37 @@ int main(int argc, char *argv[])
   // Enable application automatically using higher resolution images from icons
   QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
   QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+
+  // Low density mode for Chromebook/Crostini - disable auto high-DPI scaling
+  // Can be controlled via config "ForceLowDensity" or QT_SCALE_FACTOR env var
+  bool force_low_density = qEnvironmentVariableIsSet("OLIVE_FORCE_LOW_DENSITY");
+  if (!force_low_density) {
+    // Try to read from config file directly (before QApplication)
+    QString config_path = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation) + "/olive/config.xml";
+    QFile config_file(config_path);
+    if (config_file.exists() && config_file.open(QFile::ReadOnly)) {
+      QXmlStreamReader reader(&config_file);
+      while (!reader.atEnd() && !reader.hasError()) {
+        reader.readNext();
+        if (reader.isStartElement() && reader.name() == "ForceLowDensity") {
+          force_low_density = reader.readElementText().toLower() == "true";
+          break;
+        }
+      }
+      config_file.close();
+    }
+  }
+
+  if (force_low_density) {
+    // Disable automatic high-DPI scaling - force 1x scale
+    QCoreApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
+    qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
+    qputenv("QT_SCALE_FACTOR", "1");
+    qInfo() << "Low density mode enabled - High DPI scaling disabled";
+  } else {
+    // Allow automatic scaling but limit maximum scale factor
+    qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "1");
+  }
 
   // Create application instance
   std::unique_ptr<QCoreApplication> a;
