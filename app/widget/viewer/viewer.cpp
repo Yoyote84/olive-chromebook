@@ -1241,7 +1241,7 @@ void ViewerWidget::ContextMenuSetLowQualityPlayback(QAction *action)
   bool enabled = !action->isChecked();
   action->setChecked(enabled);
 
-  OLIVE_CONFIG("LowQualityPlayback") = QVariant::fromBool(enabled);
+  OLIVE_CONFIG("LowQualityPlayback") = QVariant(enabled);
   low_quality_playback_action_->setText(enabled ? tr("Low Quality Playback (Enabled)") : tr("Low Quality Playback (Disabled)"));
 
   // Apply the divider change to the connected node
@@ -1447,7 +1447,9 @@ void ViewerWidget::ShowContextMenu(const QPoint &pos)
       low_quality_playback_action_ = menu.addAction(low_quality ? tr("Low Quality Playback (Enabled)") : tr("Low Quality Playback (Disabled)"));
       low_quality_playback_action_->setCheckable(true);
       low_quality_playback_action_->setChecked(low_quality);
-      connect(low_quality_playback_action_, &QAction::triggered, this, &ViewerWidget::ContextMenuSetLowQualityPlayback);
+      connect(low_quality_playback_action_, &QAction::triggered, this, [this](bool){
+      this->ContextMenuSetLowQualityPlayback(low_quality_playback_action_);
+    });
     }
 
     {
