@@ -1236,6 +1236,30 @@ void ViewerWidget::ContextMenuSetPlaybackRes(QAction *action)
   Core::instance()->undo_stack()->push(c, tr("Changed Playback Resolution"));
 }
 
+void ViewerWidget::ContextMenuSetLowQualityPlayback(QAction *action)
+{
+  bool enabled = !action->isChecked();
+  action->setChecked(enabled);
+
+  OLIVE_CONFIG("LowQualityPlayback") = QVariant::fromBool(enabled);
+  low_quality_playback_action_->setText(enabled ? tr("Low Quality Playback (Enabled)") : tr("Low Quality Playback (Disabled)"));
+
+  // Apply the divider change to the connected node
+  auto vp = GetConnectedNode()->GetVideoParams();
+  if (enabled) {
+    vp.set_divider(2);
+    vp.set_format(static_cast<PixelFormat::Format>(OLIVE_CONFIG("OfflinePixelFormat").toInt()));
+    low_quality_playback_action_->setText(tr("Low Quality Playback (Enabled)"));
+  } else {
+    vp.set_divider(1);
+    // The format will be restored when sequence/clip is re-evaluated
+    low_quality_playback_action_->setText(tr("Low Quality Playback (Disabled)"));
+  }
+
+  auto c = new NodeParamSetStandardValueCommand(NodeKeyframeTrackReference(NodeInput(GetConnectedNode(), ViewerOutput::kVideoParamsInput, 0)), QVariant::fromValue(vp));
+  Core::instance()->undo_stack()->push(c, enabled ? tr("Enabled Low Quality Playback") : tr("Disabled Low Quality Playback"));
+}
+
 void ViewerWidget::ContextMenuDisableSafeMargins()
 {
   context_menu_widget_->SetSafeMargins(ViewerSafeMarginInfo(false));
@@ -1415,6 +1439,15 @@ void ViewerWidget::ShowContextMenu(const QPoint &pos)
       }
 
       connect(playback_res_menu, &QMenu::triggered, this, &ViewerWidget::ContextMenuSetPlaybackRes);
+    }
+
+    {
+      // Low Quality Playback Toggle
+      bool low_quality = OLIVE_CONFIG("LowQualityPlayback").toBool();
+      low_quality_playback_action_ = menu.addAction(low_quality ? tr("Low Quality Playback (Enabled)") : tr("Low Quality Playback (Disabled)"));
+      low_quality_playback_action_->setCheckable(true);
+      low_quality_playback_action_->setChecked(low_quality);
+      connect(low_quality_playback_action_, &QAction::triggered, this, &ViewerWidget::ContextMenuSetLowQualityPlayback);
     }
 
     {

@@ -214,6 +214,15 @@ void ProjectImportTask::ValidateImageSequence(Footage *footage, QFileInfoList& i
 
         footage->SetVideoParams(video_stream, 0);
       }
+
+      // Apply low-quality playback settings if enabled in config for non-sequence clips
+      if (!is_sequence && OLIVE_CONFIG("LowQualityPlayback").toBool()) {
+        int divider = OLIVE_CONFIG("PlaybackDivider").toInt();
+        VideoParams vp = footage->GetVideoParams(0);
+        vp.set_divider(divider);
+        vp.set_format(static_cast<PixelFormat::Format>(OLIVE_CONFIG("OfflinePixelFormat").toInt()));
+        footage->SetVideoParams(vp, 0);
+      }
     }
 
     delete previous_file;

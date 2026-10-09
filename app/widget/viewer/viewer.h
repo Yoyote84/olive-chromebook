@@ -280,6 +280,8 @@ private:
 
   int playback_speed_;
 
+  QAction *low_quality_playback_action_;
+
   rational last_time_;
 
   bool color_menu_enabled_;
@@ -367,6 +369,8 @@ private slots:
   void ContextMenuSetFullScreen(QAction* action);
 
   void ContextMenuSetPlaybackRes(QAction* action);
+
+  void ContextMenuSetLowQualityPlayback(QAction* action);
 
   void ContextMenuDisableSafeMargins();
 

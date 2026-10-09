@@ -105,6 +105,12 @@ void Config::SetDefaults()
   SetEntryInternal(QStringLiteral("ReassocLinToNonLin"), NodeValue::kBoolean, false);
   SetEntryInternal(QStringLiteral("PreviewNonFloatDontAskAgain"), NodeValue::kBoolean, false);
   SetEntryInternal(QStringLiteral("UseGLFinish"), NodeValue::kBoolean, false);
+  SetEntryInternal(QStringLiteral("LowQualityPlayback"), NodeValue::kBoolean, true);
+  SetEntryInternal(QStringLiteral("PlaybackDivider"), NodeValue::kInt, 2);
+  SetEntryInternal(QStringLiteral("LowPerformanceMode"), NodeValue::kBoolean, true);
+  SetEntryInternal(QStringLiteral("DiskCacheSaveInterval"), NodeValue::kInt, 30000);
+  SetEntryInternal(QStringLiteral("DiskCacheBehind"), NodeValue::kRational, QVariant::fromValue(rational(0)));
+  SetEntryInternal(QStringLiteral("DiskCacheAhead"), NodeValue::kRational, QVariant::fromValue(rational(30)));
 
   SetEntryInternal(QStringLiteral("TimelineThumbnailMode"), NodeValue::kInt, Timeline::kThumbnailInOut);
   SetEntryInternal(QStringLiteral("TimelineWaveformMode"), NodeValue::kInt, Timeline::kWaveformsEnabled);
